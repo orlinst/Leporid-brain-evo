@@ -1,0 +1,16 @@
+Seasonality: 
+ - Formula: Standard Deviation of monthly value divided by the average monthly value
+ - Source: Frog paper
+ - Meaning: Coefficient of variation of mean monthly temperature/precipitation.
+
+
+S:
+ - Formula: Standard deviation of monthly value multiplied by 100
+ - Source: Worldclim (This is the formula they use in their bioclimatic variables - BIO4)
+ - Meaning: As above
+
+
+Se:
+ - Formula: (Temperature values converted to absolute temperature first by adding 273.15) Same as formula for Seasonality variable, then multiply by 100
+ - Source: Dr Peter D Wilson in the public Maxent google group - https://groups.google.com/forum/#!topic/maxent/GyvpH1DlnVA
+ - Meaning: The supposed 'correct' way to calculate seasonality. Wilson quotes Worldclim introduced a shortcut when developing the bioclimatic variables.

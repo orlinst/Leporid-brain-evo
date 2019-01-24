@@ -1,0 +1,30 @@
+Total brain ~ GR total : Home range mostly driven by Home Range
+but not OB
+
+Locomotor_Mode - Saltatorial
+
+(Including body mass)
+
+
+
+OB ~ Temp mean + Precip mean (body mass)
+
+
+Yearly vs century seasonality
+two trees
+sensiPhy
+GR_Area vs Seasonality (OB vs T)
+
+
+ECV_T - Total endocranial volume
+ECV_OB - ... olfactory bulb
+ECV_ROB - ... rest of brain
+
+
+GR_Area - Geographic range area
+
+Se_temp - temperature seasonality
+Se_precip - precipitation seasonality
+
+ST - seasonality temperature 
+ 
