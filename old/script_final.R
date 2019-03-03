@@ -3,8 +3,15 @@ require(dispRity)
 
 ##LOAD UP DATA## - pgls caper
 
-lep.data <-read.table("lepdata_trimmed2.txt", sep = "\t", header = TRUE) 
-## then use the ggextra add-in to convert var types
+lep.data <-read.table("./Data/lepdata_trimmed2.txt", sep = "\t", header = TRUE) 
+
+#convert var types
+
+lep.data$DietBreadth <- as.numeric(lep.data$DietBreadth)
+lep.data$Burrow < as.numeric(lep.data$DietBurrow)
+
+
+
 lep.tree <-read.tree("leptree.txt")
 rownames(lep.data) <- lep.data$Name_phyl
 clean.data(lep.data, lep.tree)  ## check if data == tree names
