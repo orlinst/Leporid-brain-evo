@@ -33,6 +33,8 @@ lep.tree <-read.tree("./Data/leptree.txt")
 lep.data$DietBreadth <- as.numeric(lep.data$DietBreadth)
 lep.data$Burrow < as.numeric(lep.data$DietBurrow)
 
+stdize = function(x, ...) {(x - min(x, ...)) / (max(x, ...) - min(x, ...))}
+
 
 lep.data$ECV_T <- log(lep.data$ECV_T)
 lep.data$ECV_OB <- log(lep.data$ECV_OB)
@@ -43,6 +45,28 @@ lep.data$GestationLen <- log(lep.data$GestationLen)
 lep.data$HomeRange <- log(lep.data$HomeRange)
 lep.data$LitterSize <- log(lep.data$LitterSize)
 lep.data$GR_Area <- log(lep.data$GR_Area)
+
+lep.data$SeP <- log(lep.data$SeP)
+lep.data$SeP <- log(lep.data$SeT)
+
+
+
+lep.data$ECV_T <- stdize(lep.data$ECV_T)
+lep.data$ECV_OB <- stdize(lep.data$ECV_OB)
+lep.data$ECV_ROB <- stdize(lep.data$ECV_ROB)
+
+lep.data$AdultBodyMass <- stdize(lep.data$AdultBodyMass)
+lep.data$GestationLen <- stdize(lep.data$GestationLen)
+lep.data$HomeRange <- stdize(lep.data$HomeRange)
+lep.data$LitterSize <- stdize(lep.data$LitterSize)
+lep.data$GR_Area <- stdize(lep.data$GR_Area)
+
+lep.data$SeP <- stdize(lep.data$SeP)
+lep.data$SeP <- stdize(lep.data$SeT)
+
+
+
+
 
 #set row names and check for missingness
 rownames(lep.data) <- lep.data$Name_phyl
@@ -220,31 +244,35 @@ write.table(sum, "./MCMCmodels/analysis-output.csv", sep = ",", col.names = TRUE
 #Old PGLSs
 ```{r old pgsl}
 
-leporid <- comparative.data(phy = leptree, data = lepdata, names.col = Name_phyl, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
-
-#obtain residuals
-
-#for total brain/body
-model.pgls.res <- pgls(log(ECV_T) ~ log(AdultBodyMass), data = leporid, lambda='ML')
-res <- model.pgls.res$res
-
-#for OB rel to T
-model.pgls.res.ob <- pgls(log(ECV_OB) ~ log(ECV_T), data = leporid, lambda='ML')
-res.ob <- model.pgls.res.ob$res
-
+leporid <- comparative.data(phy = lep.tree, data = lep.data, names.col = Name_phyl, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
 
 #models
 
-model.Se1<-pgls(log(ECV_OB) ~ log(SeT)*log(AdultBodyMass), data = leporid, lambda='ML')
-summary(model.Se1) # oB but not ROB or T (both absolute and relative work here!)
+model.Se1<-pgls(ECV_OB ~ AdultBodyMass + SeP, data = leporid, lambda='ML')
+anova(model.Se1)
+
+model.Se2<-pgls(ECV_OB ~ AdultBodyMass + SeT, data = leporid, lambda='ML')
+anova(model.Se2)
+
+model.Se1T<-pgls(ECV_ROB ~ AdultBodyMass + SeP, data = leporid, lambda='ML')
+anova(model.Se1T)
+
+model.Se2T<-pgls(ECV_ROB ~ AdultBodyMass + SeT, data = leporid, lambda='ML')
+anova(model.Se2T)
 
 
-model.Se2<-pgls(res.ob ~ log(SeP), data = leporid, lambda='ML')
-summary(model.Se2)
+
+model.Dev1<-pgls(ECV_OB ~ AdultBodyMass + LitterSize + GestationLen, data = leporid, lambda='ML')
+anova(model.Dev1)
 
 
-model.GR<-pgls(log(ECV_T) ~ (log(GR_Area))*log(AdultBodyMass), data = leporid, lambda='ML')
-summary(model.GR) # T and ROB but not OB or relative OB (Home Range NS) - I think nothing from here
+model.Dev2<-pgls(ECV_ROB ~ AdultBodyMass + SeT, data = leporid, lambda='ML')
+anova(model.Dev2)
+
+
+
+
+
 
 
 #plot
