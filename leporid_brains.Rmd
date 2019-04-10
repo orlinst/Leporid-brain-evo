@@ -30,8 +30,9 @@ lep.tree <-read.tree("./Data/leptree.txt")
 
 #convert var types
 
-lep.data$DietBreadth <- as.numeric(lep.data$DietBreadth)
-lep.data$Burrow < as.numeric(lep.data$DietBurrow)
+lep.data$DietBreadth <- as.factor(lep.data$DietBreadth)
+lep.data$Burrow < as.factor(lep.data$DietBurrow)
+lep.data$Activity < as.factor(lep.data$Activity)
 
 stdize = function(x, ...) {(x - min(x, ...)) / (max(x, ...) - min(x, ...))}
 
@@ -47,7 +48,7 @@ lep.data$LitterSize <- log(lep.data$LitterSize)
 lep.data$GR_Area <- log(lep.data$GR_Area)
 
 lep.data$SeP <- log(lep.data$SeP)
-lep.data$SeP <- log(lep.data$SeT)
+lep.data$SeT <- log(lep.data$SeT)
 
 
 
@@ -231,22 +232,12 @@ write.table(sum, "./MCMCmodels/analysis-output.csv", sep = ",", col.names = TRUE
 
 
 
-
-
-
-
-
-
-
-
-
-
 #Old PGLSs
 ```{r old pgsl}
 
 leporid <- comparative.data(phy = lep.tree, data = lep.data, names.col = Name_phyl, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
 
-#models
+#models seasonality
 
 model.Se1<-pgls(ECV_OB ~ AdultBodyMass + SeP, data = leporid, lambda='ML')
 anova(model.Se1)
@@ -260,15 +251,34 @@ anova(model.Se1T)
 model.Se2T<-pgls(ECV_ROB ~ AdultBodyMass + SeT, data = leporid, lambda='ML')
 anova(model.Se2T)
 
-
+#models maternal investment
 
 model.Dev1<-pgls(ECV_OB ~ AdultBodyMass + LitterSize + GestationLen, data = leporid, lambda='ML')
 anova(model.Dev1)
 
-
-model.Dev2<-pgls(ECV_ROB ~ AdultBodyMass + SeT, data = leporid, lambda='ML')
+model.Dev2<-pgls(ECV_ROB ~ AdultBodyMass + LitterSize + GestationLen, data = leporid, lambda='ML')
 anova(model.Dev2)
 
+#models spatial ecology
+
+model.Ran1<-pgls(ECV_OB ~ AdultBodyMass + GR_Area + Locomotor_Mode, data = leporid, lambda='ML')
+anova(model.Ran1)
+
+model.Ran2<-pgls(ECV_ROB ~ AdultBodyMass + HomeRange + GR_Area + Locomotor_Mode, data = leporid, lambda='ML')
+anova(model.Ran2)
+
+#models eco
+
+model.Act1<-pgls(ECV_OB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data = leporid, lambda='ML')
+anova(model.Act1)
+
+model.Act2<-pgls(ECV_ROB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data = leporid, lambda='ML')
+anova(model.Act2)
+
+
+#Check for vifs
+
+vif(lm(ECV_ROB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data=lep.data))
 
 
 
@@ -284,17 +294,5 @@ p <- plot_ly(lepdata, x = ~log(ECV_OB)/log(ECV_T), y = ~log(SeT), z = ~log(Adult
   layout(scene = list(xaxis = list(title = 'RelBrain'),
                       yaxis = list(title = 'SeT'),
                       zaxis = list(title = 'BodyMass')))
-
-
-
-
-#Check for vifs
-
-DataCA=data.frame(res.ob, lepdata$SeT, lepdata$SeP, lepdata$AdultBodyMass)
-Lm_CA=lm(res.ob ~ lepdata.SeP*lepdata.AdultBodyMass, data=DataCA)
-vif(Lm_CA) # low vifs
-
-
-cor.test(lepdata$SeT, lepdata$SeP) #low cross correlation between SeT & SeP
 
 ```
