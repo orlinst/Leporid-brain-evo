@@ -26,7 +26,7 @@ require(phylomice)
 ```{r load data and tree}
 
 lep.data <-read.table("./Data/lepdata_trimmed2.txt", sep = "\t", header = TRUE)
-lep.tree <-read.tree("./Data/leptree.txt")
+lep.tree1 <-read.tree("./Data/leptree.txt")
 
 #convert var types
 
@@ -266,6 +266,12 @@ anova(model.Ran1)
 
 model.Ran2<-pgls(ECV_ROB ~ AdultBodyMass + HomeRange + GR_Area + Locomotor_Mode, data = leporid, lambda='ML')
 anova(model.Ran2)
+
+
+*************************
+model.Ran3<-pgls(ECV_ROB ~ AdultBodyMass + HomeRange + Burrow, data = leporid, lambda='ML')
+anova(model.Ran3)
+*************************
 
 #models eco
 
