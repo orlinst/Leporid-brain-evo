@@ -71,7 +71,7 @@ lep.data$SeP <- stdize(lep.data$SeT)
 
 #set row names and check for missingness
 rownames(lep.data) <- lep.data$Name_phyl
-clean.data(lep.data, lep.tree)  ## check if data == tree names
+clean.data(lep.data, lep.tree1)  ## check if data == tree names
 
 ```
 
@@ -235,14 +235,14 @@ write.table(sum, "./MCMCmodels/analysis-output.csv", sep = ",", col.names = TRUE
 #Old PGLSs
 ```{r old pgsl}
 
-leporid <- comparative.data(phy = lep.tree, data = lep.data, names.col = Name_phyl, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
+leporid <- comparative.data(phy = lep.tree1, data = lep.data, names.col = Name_phyl, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
 
 #models seasonality
 
-model.Se1<-pgls(ECV_OB ~ AdultBodyMass + SeP, data = leporid, lambda='ML')
+model.Se1<-pgls(ECV_OB ~ AdultBodyMass * SeP, data = leporid, lambda='ML')
 anova(model.Se1)
 
-model.Se2<-pgls(ECV_OB ~ AdultBodyMass + SeT, data = leporid, lambda='ML')
+model.Se2<-pgls(ECV_OB ~ AdultBodyMass * SeT, data = leporid, lambda='ML')
 anova(model.Se2)
 
 model.Se1T<-pgls(ECV_ROB ~ AdultBodyMass + SeP, data = leporid, lambda='ML')
@@ -295,10 +295,30 @@ vif(lm(ECV_ROB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data=lep.data)
 ggplot(lepdata, aes(x = res.ob, y = log(SeP))) + geom_point()
 
        #or
-p <- plot_ly(lepdata, x = ~log(ECV_OB)/log(ECV_T), y = ~log(SeT), z = ~log(AdultBodyMass), color = ~Activity, colors = c('#BF382A', '#0C4B8E')) %>%
+p <- plot_ly(lep.data, x = ~log(ECV_OB)/log(ECV_T), y = ~log(SeT), z = ~log(AdultBodyMass), color = ~Burrow, colors = c('#BF382A', '#0C4B8E')) %>%
   add_markers() %>%
   layout(scene = list(xaxis = list(title = 'RelBrain'),
                       yaxis = list(title = 'SeT'),
                       zaxis = list(title = 'BodyMass')))
+
+
+p1 <- ggplot(lep.data, aes(log(AdultBodyMass), log(ECV_ROB), color=Burrow, shape=Burrow)) +
+    geom_point(size=2) + 
+    geom_smooth(method=lm, se=FALSE, size=2) +
+    scale_colour_discrete(name = "Burrowing", labels = c("No", "Yes")) +
+    scale_shape_discrete(name = "Burrowing", labels = c("No", "Yes")) +
+    theme_classic() +
+    xlab("log Body weight") + ylab("log Brain volume") +
+    theme(axis.text.x = element_text(size = 20, face = "plain"),
+          axis.text.y = element_text(size = 20, face = "plain"),  
+          axis.title.x = element_text(size = 20, face = "plain", vjust=0.5),
+          axis.title.y = element_text(size = 20, face = "plain"),
+          legend.text = element_text(size=20),
+          legend.title = element_text(size=20, face = "bold"),
+          legend.background = element_blank(),
+          legend.box.background = element_rect(colour = "black"),
+          legend.title.align=0.5,
+          legend.position = c(0.93, 0.5)) +
+    coord_fixed(ratio = 1) 
 
 ```
