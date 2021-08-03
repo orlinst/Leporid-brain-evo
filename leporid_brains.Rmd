@@ -553,31 +553,23 @@ p1 <- ggplot(lep.data, aes(log(AdultBodyMass), log(ECV_ROB), color=Burrow, shape
 
 
 ##Graph per species
+```{r old pgsl}
+require (ggConvexHull)
 
-colourCount = 18
+colourCount = nlevels(individuals$Species)
 getPalette = colorRampPalette(brewer.pal(8, "Accent"))
-ggplot(individuals, aes(log(Mass), log(ECV), shape=Burrow)) +
-    geom_point(aes(color=Species), size=2) +
+legend_ord <- levels(with(individuals, reorder(Species, Mass)))
+
+ggplot(individuals, aes(log(Mass), log(ECV), col=Species, shape=Burrow)) +
+    geom_point(size=2) +
     geom_smooth(method=lm, se=FALSE, fullrange=FALSE, size=1.3, aes(colour=factor(Burrow))) +
+    geom_convexhull(alpha = 0.05,aes(color=Burrow), show.legend = F) +
+    stat_summary(fun="mean", colour="red", geom="point", size=4, shape=4) +
     xlab("log Body weight") + ylab("log Brain volume") +
     scale_color_discrete (breaks=legend_ord) +
     scale_fill_manual(values = getPalette(colourCount), name = "Species") +
-    theme(legend.box.margin = margin(116, 6, 6, 6)) +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
     panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-    stat_summary(fun="mean", colour="red", geom="point", size=4, shape=4) +
     guides(fill = guide_legend(override.aes = list(linetype = 0)),
-         color = guide_legend(override.aes = list(linetype = 0)))
-    
-    
-    
-    
-    stat_summary(fun.y="mean", geom="lm", aes(group=factor(Burrow)))
-    
-
-gd <- individuals %>% 
-    group_by(Species) %>% 
-    summarise(
-        ECV_M = mean(ECV))
-
-
+         color = guide_legend(order =1, override.aes = list(linetype = 0)))
+```
