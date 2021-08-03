@@ -31,8 +31,8 @@ lep.tree1 <-read.tree("./Data/leptree.txt")
 #convert var types
 
 lep.data$DietBreadth <- as.factor(lep.data$DietBreadth)
-lep.data$Burrow < as.factor(lep.data$DietBurrow)
-lep.data$Activity < as.factor(lep.data$Activity)
+lep.data$Burrow <- as.factor(lep.data$Burrow)
+lep.data$Activity <- as.factor(lep.data$Activity)
 
 stdize = function(x, ...) {(x - min(x, ...)) / (max(x, ...) - min(x, ...))}
 
@@ -75,7 +75,21 @@ clean.data(lep.data, lep.tree1)  ## check if data == tree names
 
 ```
 
+#missingness analysis
 
+```{r naniar}
+library(naniar)
+library(visdat)
+
+#visualisation of missingness
+vis_dat(lep.data)
+vis_miss(lep.data)
+
+#3% avg missing data so imputing 3 datatsets
+
+phyloMiss <- miss.phylo.d(lep.data,lep.tree1)
+
+```
 
 #imputation
 ```{r mice}
@@ -84,9 +98,9 @@ data_mice <- lep.data
 library(VIM)
 aggr_plot <- aggr(data_mice, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data_mice), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
 
-prec <- precomputePsi(lep.tree)
+prec <- precomputePsi(lep.tree1)
 
-imp <- mice(data_mice, m=5, meth = "phpmm", psi = prec$psi, psiinv = prec$psiinv, maxit = 2)
+imp <- mice(data_mice, m=3, meth = "phpmm", psi = prec$psi, psiinv = prec$psiinv, maxit = 2)
 
 pred <- imp$predictorMatrix
 pred[, "Name_phyl"] <- 0
@@ -95,131 +109,345 @@ pred[, "Se_precip"] <- 0
 pred[, "ST"] <- 0
 pred[, "SP"] <- 0
 
-imp <- mice(data_mice, m=5, pred = pred, seed=542, meth = "phpmm", psi = prec$psi, psiinv = prec$psiinv, maxit = 2000)
+imp <- mice(lep.data, m=5, pred = pred, seed=542, meth = "phpmm", psi = prec$psi, psiinv = prec$psiinv, maxit = 2000)
 
 ```
 
 #doctoring the tree
 ```{r fixing the tree, message=FALSE, warning=FALSE}
-lep.tree$edge.length[which(lep.tree$edge.length == 0)] <- 0.01*median(lep.tree$edge.length[-which(lep.tree$edge.length == 0)])
-lep.tree <- force.ultrametric(lep.tree,method="extend")
+lep.tree1$edge.length[which(lep.tree1$edge.length == 0)] <- 0.01*median(lep.tree1$edge.length[-which(lep.tree1$edge.length == 0)])
+lep.tree1 <- force.ultrametric(lep.tree1,method="extend")
 ```
+
+
+Extracting the imputed sets
+```{r sets}
+for(imputedsets in 1: length(imp$imp[[1]])) {
+    assign(paste0("dataX",imputedsets), complete(imp, imputedsets))
+    assign(paste0("dataX",imputedsets), cbind(Names = lep.data[[1]], get(paste0("dataX",imputedsets))))
+}
+```
+
 
 Formulas
 ```{r formulas}
-formula1 <- ECV_T ~ SeT * SeP * AdultBodyMass
-formula2 <- ECV_OB ~ SeT * SeP * AdultBodyMass
-formula3 <- ECV_ROB ~ SeT * SeP * AdultBodyMass
+
+##Check all models with check_model from require(performance) as an lm first. No large vifs and
+##assumptions for regression met
+
+#Models ECV_ROB
+
+##Seasonality
+formula1a <- ECV_ROB ~ AdultBodyMass + SeT + SeP 
+##Maternal investment
+formula1b <- ECV_ROB ~ AdultBodyMass + LitterSize + GestationLen
+##Spatial
+formula1c <- ECV_ROB ~ AdultBodyMass + HomeRange + GR_Area
+##Diet
+formula1d <- ECV_ROB ~ AdultBodyMass + DietBreadth
+##behavioural
+formula1e <- ECV_ROB ~ AdultBodyMass +  Locomotor_Mode + Activity + Burrow
+##behavioural2
+formula1f <- ECV_ROB ~ AdultBodyMass * Burrow
+##behavioural2
+formula1g <- ECV_ROB ~ AdultBodyMass + Burrow
+
+#Models ECT_OB
+
+##Seasonality
+formula2a <- ECV_OB ~ AdultBodyMass + SeT + SeP 
+##Maternal investment
+formula2b <- ECV_OB ~ AdultBodyMass + LitterSize + GestationLen
+##Spatial
+formula2c <- ECV_OB ~ AdultBodyMass + HomeRange + GR_Area
+##Diet
+formula2d <- ECV_OB ~ AdultBodyMass + DietBreadth
+##behavioural
+formula2e <- ECV_OB ~ AdultBodyMass +  Locomotor_Mode + Activity + Burrow
+##behavioural2
+formula2f <- ECV_OB ~ AdultBodyMass * Burrow
+##behavioural2
+formula2g <- ECV_OB ~ AdultBodyMass + Burrow
 
 
-formula1a <- ECV_T ~ SeT * SeP * Burrow * AdultBodyMass
-formula2a <- ECV_OB ~ Burrow * Locomotor_Mode * Activity * AdultBodyMass
-formula3a <- ECV_ROB ~ Burrow * Locomotor_Mode * Activity * AdultBodyMass
 
-formula1b <- ECV_T ~ DietBreadth * GR_Area * AdultBodyMass
-formula2b <- ECV_OB ~ DietBreadth * GR_Area * AdultBodyMass
-formula3b <- ECV_ROB ~ DietBreadth * GR_Area * AdultBodyMass
-
-formula1c <- ECV_T ~ GestationLen * LitterSize * AdultBodyMass
-formula2c <- ECV_OB ~ GestationLen * LitterSize * AdultBodyMass
-formula3c <- ECV_ROB ~ SGestationLen * LitterSize * AdultBodyMass
 
 ```
 
 #Parameters for the MCMC
 ```{r parameters, message=FALSE, warning=FALSE}
 # Number of interations
-nitt <- 250000
+nitt <- 1000042
 # Length of burnin -> what to ignore (the initial N ot iterations)
-burnin <- 30000
+burnin <- 100000
 # Amount of thinning -> lenght of step (sampling rate)
-thin <- 10
+thin <- 300
 ```
 
 #Creating mulTree objects
 ```{r multree, message=FALSE, warning=FALSE, verbose = FALSE}
 
-mulTree_data <- as.mulTree(data = lep.data, tree = lep.tree,
-                           taxa = "Name_phyl")
+for(imputedsets in 1:length(imp$imp[[1]])) {
+    assign(paste("mulTree_data",imputedsets,sep=""), as.mulTree(data = get(paste("dataX",imputedsets, sep="")), tree = lep.tree1, taxa = "Name_phyl"))
+}
 ```
+
+
+PROPER PRIORS
+
+p.var <- var(Data$BWT, na.rm = TRUE)
+> prior1.1.2 <- list(G = list(G1 = list(V = matrix(p.var * 0.05),
++ nu = 1)), R = list(V = matrix(p.var * 0.95), nu = 1))
+
+
 
 #change formulas
 ```{r multree, message=FALSE, warning=FALSE}
 # The formula
-mul_formula <- formula1b
 # The MCMC parameters (iterations, thining, burnin)
 mul_parameters <- c(nitt, thin, burnin)
 # The MCMCglmm priors
 mul_priors <- list(R = list(V = 1, nu = 0.002),
                    G = list(G1 = list(V = 1, nu = 0.002)))
-```
-
-```{r running multree, message=FALSE, warning=FALSE}
-mulTree(mulTree.data = mulTree_data, formula = mul_formula, priors = mul_priors,
-        parameters = mul_parameters, output = "./MCMCmodels/model1", ESS = 1000,
-        chains = 2)
-```
 
 
-```{r plotting the densities }
 
-setwd("./MCMCmodels")
+for(imputedsets in 1 : length(imp$imp[[1]])) {
+  for (form in c("1a", "1b", "1c", "1d", "1e", "1f", "2a", "2b", "2c", "2d", "2e", "2f"))
+      mulTree(mulTree.data = get(paste0("mulTree_data",imputedsets)), formula = get(paste0("formula", form)), priors = mul_priors,
+      parameters = mul_parameters, output = paste0("./MCMCmodels/model_", form, "/" , "model", imputedsets), ESS = 1000, chains = 2)
+  }
 
-one_model1 <- read.mulTree("model1-tree1_chain1", model = TRUE)
-solX <- as.matrix(one_model1$Sol)
-res.plot <- as.data.frame(one_model1$Sol)
-
-setwd("./")
-
-names <- colnames(solX)
-colnames(solX) <- names
-solX <- as.data.frame(solX)
-
-sum <- as.mcmc(one_model1$Sol)
-sum <- summary(sum)
-sum <- as.data.frame(sum$statistics)
 
 ```
 
-```{r}
-#plot in a pdf
-library(hdrcde)
+``` {r pooling, message=FALSE, warning=FALSE, error = TRUE, eval = FALSE}
+setwd("./MCMCmodels/model_1g")
+list() -> raw_models_chain1 -> raw_models_chain2
+for(imputedsets in 1:  length(imp$imp[[1]])) {
+  raw_models_chain1[[imputedsets]] <- read.mulTree(paste0("model",imputedsets,"-tree1_chain1"), model = TRUE)
+  raw_models_chain2[[imputedsets]] <- read.mulTree(paste0("model",imputedsets,"-tree1_chain2"), model = TRUE)
+}
+
+raw_models_allchains <- c(raw_models_chain1, raw_models_chain2)
+
+## Get Sol
+# @param model this should be a single model (e.g. one chain output from mcmcglmm)
+# @return the Sol vector from one single chain
+get.Sol <- function(model) {return(model$Sol)}
+
+## Get summary of Sol
+# @param model this should be a single model (e.g. one chain output from mcmcglmm)
+# @return the summary table of the Sol
+get.summary.Sol <- function(model) {return(summary(model$Sol))}
+
+## Turn into dataframe and get statistics
+## obtain Variance (SD^2) and bind to the list
+## remove unnecessary columns
+# @param The output of get.summary.Sol (the summary of Sol)
+# @return dataframe with statistics
+get.stat.Sol <- function(summarySol) {
+  output <- as.data.frame(summarySol$statistics)
+  output$Var <- (output$SD)^2
+  output$SD <- NULL
+  output$`Naive SE` <- NULL
+  output$`Time-series SE` <- NULL
+  return(output)
+}
+
+## Run the functions and get *results*
+all_Sol <- lapply(raw_models_allchains, get.Sol)
+all_summaries <- lapply(raw_models_allchains, get.summary.Sol)
+results <- lapply(all_summaries, get.stat.Sol)
+
+#setwd("./")
+
+##Combining solutions for density plots + percentages
+
+#using list.rbind from rlist
+solX <- as.data.frame(list.rbind(all_Sol))
+
+##Neat up the names!
+
+names(solX)
+names(solX) <- c("Intercept",    "Body Weight", "Burrowing", "Interaction")
+
+
+
+#Plot density plots
+
+#plot in pdf
+
 
 pdf(file="./MCMCmodels/density.pdf")
 par( mfrow = c( 3, 3 ))
-    for(column in 1:8) {
+    for(column in 1 : c(ncol(solX))) {
     percentage_above_zero <- length(which(solX[,column] >= 0))/length(solX[,column])
-hdr.den(solX[,column], main = names(solX[column]), sub = paste0(round(percentage_above_zero*100,2), "% above zero"))
+hdr.den(solX[,column],  main = names(solX[column]), sub = paste0(round(percentage_above_zero*100,2), "% above zero"), prob = c(50, 95, 99))
 abline(v = 0, lty = 1)  
     }
-
-color_scheme_set("brightblue")
-mcmc_intervals(res.plot)
-
-
-p <- ggplot(
-    sum, 
-    aes(x = Mean, y = fct_rev(row.names(sum)), xmin = Mean-SD, xmax = Mean+SD)) +
-    geom_point(aes(color = row.names(sum))) +
-    geom_errorbarh(aes(color = row.names(sum)), height=0.05)+
-    geom_vline(xintercept = 0, color = "red", linetype="longdash", size=0.5) +
-    theme_light()
-p$labels$colour <- "Model"
-p$labels$x <- "Posterior estimate + SD"
-p$labels$y <- "Model parameters"
-p
-
 dev.off()
+```
 
 
-solX <- as.mcmc(one_model1$Sol)
-sum <- summary(solX)
-sum <- as.data.frame(sum$statistics)
 
-write.table(sum, "./MCMCmodels/analysis-output.csv", sep = ",", col.names = TRUE, row.names = TRUE)
+
+
+
+##Pooling the results using the Rubin's rule
+##Make sure to adjust parameters!
+```{r pooling, message=FALSE, warning=FALSE, error = TRUE, eval = FALSE}
+
+# Using the posteriors collated in *results*
+
+mbar <-  function (x, col=1) { # function to calculate average parameter estimates and average variances from the results list
+    vals <- rowMeans(matrix(unlist(lapply(x, function (z) z[, col])),
+                            nrow=dim(x[[1]])[1], ncol=length(x)))
+    names(vals) <- rownames(x[[1]])
+    vals
+}
+
+Bm <- function (x) {
+    Qmbar <- mbar(x)
+    Qvals <- matrix(unlist(lapply(x, function (z) z[,1])),
+                    ncol=length(x), nrow=dim(x[[1]])[1])
+    QQ <- apply(Qvals, 2, function (x) x - Qmbar)
+    apply(QQ, 1, function (z) (z %*% z)/(length(z)-1))
+}
+
+Tm <- function (x) {
+    Umbar <- mbar(x,  col=2)
+    Umbar + (1 + 1/length(x)) * Bm(x)
+}
+
+lambda <- function (nu) {
+    (nu + 1)/(nu + 3)
+}
+
+vm <- function (Bm, Tm, m=5){
+    gammahat <- (1+1/m) * sum(Bm/Tm)/length(Bm)
+    (m-1)/(gammahat^2)
+}
+
+
+# Now we do the analysis:
+
+
+#m - imputed sets * chains
+#n - number of species
+#k - number of params as N of cols in solutions
+
+m <- (length(imp$imp[[1]]))*2
+n <- 18
+k <- ncol(solX)
+## m = number of imputed datasets
+## n = number of observations
+## k = number of parameters
+
+Bm1 <- Bm(results)
+Tm1 <- Tm(results) # total variance
+
+# calculation of the degrees of freedom for t-tests of parameters
+
+vhatobs <- lambda(n-k)*(n-k)*(1- (1+1/m) * sum(Bm1/Tm1)/length(Bm1))
+vm1 <- vm(Bm1, Tm1)
+vmtilde <-  1/(1/vm1+1/vhatobs)
+
+Qmbar <- mbar(results) # mean parameter estimates
+
+WaldT <- Qmbar/sqrt(Tm1)
+upperCI <- Qmbar + sqrt(Tm1) * qt(.95, vmtilde)
+lowerCI <-  Qmbar - sqrt(Tm1) * qt(.95, vmtilde)
+
+tTable <- cbind(Qmbar, SE=sqrt(Tm1), WaldT,
+                df=vmtilde, p=2*(1-pt(abs(WaldT),
+                                    vmtilde)), lowerCI, upperCI)
+```
+
+##DIC calculation
+```{R comparing DIC, error = TRUE, eval = FALSE}
+#Getting DICs and averaging (possibly other ICs)
+
+get.DIC <- function(model) {return(model$DIC)}
+
+model_DICs <- lapply(raw_models_allchains, get.DIC)  
+model_DICs <- as.data.frame(model_DICs)
+DICnames <- c(paste0("Model", 1:ncol(model_DICs)))
+colnames(model_DICs) <- DICnames
+DICs <- mean(t(model_DICs))
+DICs
+```
+
+##H calculation
+```{r h - phylogenetic signal, error = TRUE, eval = FALSE}
+#Calculating average H for all models
+
+get.H <- function(model) {return((var(model$VCV[,"animal"]))/
++     (var(model$VCV[,"animal"]) + var(model$VCV[,"units"])))
+  }
+
+Hs <- lapply(raw_models_allchains, get.H)
+Hs <- as.data.frame(Hs)
+mean(t(Hs))
 
 ```
 
+##Plotting 2: Export text and plot output
+```{r sink to txt file, error = TRUE, eval = FALSE}
+#Change row names
+row.names(tTable)
+row.names(tTable) <- names(solX)
+
+#Export a csv table
+#col.names = NA offsets the header with 1
+write.table(as.matrix(tTable), "./MCMCmodels/analysis-output.csv", sep = ",", col.names = NA, row.names = TRUE)
+
+#Export txt with posteriors and Hs and DICs
+sink('./MCMCmodels/analysis-output.txt')
+#options(width=10000) stops word wrapping
+options(width=10000)
+#print pooled results
+tTable
+#print Hs
+print("Mean H")
+mean(t(Hs))
+#print DICs
+print("Mean DIC")
+DICs
+sink()
+
+#Convert data to res.plot
+res.plot <- as.data.frame(tTable)
+
+#res.plot$upperCI <- NULL
+#res.plot$lowerCI <- NULL
+res.plot$p <- NULL
+res.plot$df <- NULL
+res.plot$WaldT <- NULL
+
+#generate pdf with the model
+pdf(file="./MCMCmodels/model.pdf",width=6,height=4)
+p <- ggplot(
+    res.plot, 
+    aes(x = Qmbar, y = fct_relevel(row.names(res.plot), "VarN", "Intercept", after = Inf), xmin = lowerCI, xmax = upperCI)) +
+    geom_point(aes(color = row.names(res.plot))) +
+    geom_errorbarh(aes(color = row.names(res.plot)), height=0.05)+
+    geom_vline(xintercept = 0, color = "red", linetype="longdash", size=0.5) +
+    theme_light()
+p$labels$colour <- "Model parameters"
+p$labels$x <- "Posterior estimate + 95% CI"
+p$labels$y <- "Model parameters"
+p
+
+#generates bayesplot of the model
+color_scheme_set("brightblue")
+mcmc_intervals(t(res.plot))
+
+dev.off()
+
+#optional
+mcmc_areas(t(res.plot))
+```
 
 
 
@@ -269,13 +497,13 @@ anova(model.Ran2)
 
 
 *************************
-model.Ran3<-pgls(ECV_ROB ~ AdultBodyMass + HomeRange + Burrow, data = leporid, lambda='ML')
+model.Ran3<-pgls(ECV_ROB ~ AdultBodyMass + Burrow, data = leporid, lambda='ML')
 anova(model.Ran3)
 *************************
 
 #models eco
 
-model.Act1<-pgls(ECV_OB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data = leporid, lambda='ML')
+model.Act1<-pgls(ECV_OB ~ AdultBodyMass + DietBreadth + Activity, data = leporid, lambda='ML')
 anova(model.Act1)
 
 model.Act2<-pgls(ECV_ROB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data = leporid, lambda='ML')
@@ -322,3 +550,34 @@ p1 <- ggplot(lep.data, aes(log(AdultBodyMass), log(ECV_ROB), color=Burrow, shape
     coord_fixed(ratio = 1) 
 
 ```
+
+
+##Graph per species
+
+colourCount = 18
+getPalette = colorRampPalette(brewer.pal(8, "Accent"))
+ggplot(individuals, aes(log(Mass), log(ECV), shape=Burrow)) +
+    geom_point(aes(color=Species), size=2) +
+    geom_smooth(method=lm, se=FALSE, fullrange=FALSE, size=1.3, aes(colour=factor(Burrow))) +
+    xlab("log Body weight") + ylab("log Brain volume") +
+    scale_color_discrete (breaks=legend_ord) +
+    scale_fill_manual(values = getPalette(colourCount), name = "Species") +
+    theme(legend.box.margin = margin(116, 6, 6, 6)) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+    panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+    stat_summary(fun="mean", colour="red", geom="point", size=4, shape=4) +
+    guides(fill = guide_legend(override.aes = list(linetype = 0)),
+         color = guide_legend(override.aes = list(linetype = 0)))
+    
+    
+    
+    
+    stat_summary(fun.y="mean", geom="lm", aes(group=factor(Burrow)))
+    
+
+gd <- individuals %>% 
+    group_by(Species) %>% 
+    summarise(
+        ECV_M = mean(ECV))
+
+
