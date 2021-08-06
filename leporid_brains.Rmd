@@ -33,37 +33,38 @@ lep.tree1 <-read.tree("./Data/leptree.txt")
 lep.data$DietBreadth <- as.factor(lep.data$DietBreadth)
 lep.data$Burrow <- as.factor(lep.data$Burrow)
 lep.data$Activity <- as.factor(lep.data$Activity)
+lep.data$Locomotor_Mode <- as.factor(lep.data$Locomotor_Mode)
 
-stdize = function(x, ...) {(x - min(x, ...)) / (max(x, ...) - min(x, ...))}
+#stdize = function(x, ...) {(x - min(x, ...)) / (max(x, ...) - min(x, ...))}
 
 
 lep.data$ECV_T <- log(lep.data$ECV_T)
 lep.data$ECV_OB <- log(lep.data$ECV_OB)
 lep.data$ECV_ROB <- log(lep.data$ECV_ROB)
-
 lep.data$AdultBodyMass <- log(lep.data$AdultBodyMass)
-lep.data$GestationLen <- log(lep.data$GestationLen)
-lep.data$HomeRange <- log(lep.data$HomeRange)
-lep.data$LitterSize <- log(lep.data$LitterSize)
-lep.data$GR_Area <- log(lep.data$GR_Area)
 
-lep.data$SeP <- log(lep.data$SeP)
-lep.data$SeT <- log(lep.data$SeT)
+#lep.data$GestationLen <- log(lep.data$GestationLen)
+#lep.data$HomeRange <- log(lep.data$HomeRange)
+#lep.data$LitterSize <- log(lep.data$LitterSize)
+#lep.data$GR_Area <- log(lep.data$GR_Area)
+
+#lep.data$SeP <- log(lep.data$SeP)
+#lep.data$SeT <- log(lep.data$SeT)
 
 
 
-lep.data$ECV_T <- stdize(lep.data$ECV_T)
-lep.data$ECV_OB <- stdize(lep.data$ECV_OB)
-lep.data$ECV_ROB <- stdize(lep.data$ECV_ROB)
+#lep.data$ECV_T <- stdize(lep.data$ECV_T)
+#lep.data$ECV_OB <- stdize(lep.data$ECV_OB)
+#lep.data$ECV_ROB <- stdize(lep.data$ECV_ROB)
 
-lep.data$AdultBodyMass <- stdize(lep.data$AdultBodyMass)
-lep.data$GestationLen <- stdize(lep.data$GestationLen)
-lep.data$HomeRange <- stdize(lep.data$HomeRange)
-lep.data$LitterSize <- stdize(lep.data$LitterSize)
-lep.data$GR_Area <- stdize(lep.data$GR_Area)
+#lep.data$AdultBodyMass <- stdize(lep.data$AdultBodyMass)
+#lep.data$GestationLen <- stdize(lep.data$GestationLen)
+#lep.data$HomeRange <- stdize(lep.data$HomeRange)
+#lep.data$LitterSize <- stdize(lep.data$LitterSize)
+#lep.data$GR_Area <- stdize(lep.data$GR_Area)
 
-lep.data$SeP <- stdize(lep.data$SeP)
-lep.data$SeP <- stdize(lep.data$SeT)
+#lep.data$SeP <- stdize(lep.data$SeP)
+#lep.data$SeP <- stdize(lep.data$SeT)
 
 
 
@@ -74,6 +75,13 @@ rownames(lep.data) <- lep.data$Name_phyl
 clean.data(lep.data, lep.tree1)  ## check if data == tree names
 
 ```
+
+#doctoring the tree
+```{r fixing the tree, message=FALSE, warning=FALSE}
+lep.tree1$edge.length[which(lep.tree1$edge.length == 0)] <- 0.01*median(lep.tree1$edge.length[-which(lep.tree1$edge.length == 0)])
+lep.tree1 <- force.ultrametric(lep.tree1,method="extend")
+```
+
 
 #missingness analysis
 
@@ -86,8 +94,10 @@ vis_dat(lep.data)
 vis_miss(lep.data)
 
 #3% avg missing data so imputing 3 datatsets
-
-phyloMiss <- miss.phylo.d(lep.data,lep.tree1)
+require(sensiPhy)
+lep.tree2 <- lep.tree1
+lep.tree2$node.label <- NULL
+phyloMiss <- miss.phylo.d(lep.data,lep.tree2, binvar=Burrow)
 
 ```
 
@@ -113,11 +123,6 @@ imp <- mice(lep.data, m=5, pred = pred, seed=542, meth = "phpmm", psi = prec$psi
 
 ```
 
-#doctoring the tree
-```{r fixing the tree, message=FALSE, warning=FALSE}
-lep.tree1$edge.length[which(lep.tree1$edge.length == 0)] <- 0.01*median(lep.tree1$edge.length[-which(lep.tree1$edge.length == 0)])
-lep.tree1 <- force.ultrametric(lep.tree1,method="extend")
-```
 
 
 Extracting the imputed sets
@@ -146,11 +151,10 @@ formula1c <- ECV_ROB ~ AdultBodyMass + HomeRange + GR_Area
 ##Diet
 formula1d <- ECV_ROB ~ AdultBodyMass + DietBreadth
 ##behavioural
-formula1e <- ECV_ROB ~ AdultBodyMass +  Locomotor_Mode + Activity + Burrow
+formula1e <- ECV_ROB ~ AdultBodyMass + Locomotor_Mode + Activity + Burrow
 ##behavioural2
-formula1f <- ECV_ROB ~ AdultBodyMass * Burrow
-##behavioural2
-formula1g <- ECV_ROB ~ AdultBodyMass + Burrow
+formula1f <- ECV_ROB ~ AdultBodyMass + Burrow
+
 
 #Models ECT_OB
 
@@ -165,9 +169,8 @@ formula2d <- ECV_OB ~ AdultBodyMass + DietBreadth
 ##behavioural
 formula2e <- ECV_OB ~ AdultBodyMass +  Locomotor_Mode + Activity + Burrow
 ##behavioural2
-formula2f <- ECV_OB ~ AdultBodyMass * Burrow
-##behavioural2
-formula2g <- ECV_OB ~ AdultBodyMass + Burrow
+formula2f <- ECV_OB ~ AdultBodyMass + Burrow
+
 
 
 
@@ -199,7 +202,7 @@ p.var <- var(Data$BWT, na.rm = TRUE)
 > prior1.1.2 <- list(G = list(G1 = list(V = matrix(p.var * 0.05),
 + nu = 1)), R = list(V = matrix(p.var * 0.95), nu = 1))
 
-
+mulTree(mulTree.data = lep.data, formula = formula1f, priors = mul_priors, parameters = mul_parameters, output = ./MCMCmodels/model_1fa, ESS = 1000, chains = 2)
 
 #change formulas
 ```{r multree, message=FALSE, warning=FALSE}
@@ -213,7 +216,7 @@ mul_priors <- list(R = list(V = 1, nu = 0.002),
 
 
 for(imputedsets in 1 : length(imp$imp[[1]])) {
-  for (form in c("1a", "1b", "1c", "1d", "1e", "1f", "2a", "2b", "2c", "2d", "2e", "2f"))
+  for (form in c("2e", "1e"))
       mulTree(mulTree.data = get(paste0("mulTree_data",imputedsets)), formula = get(paste0("formula", form)), priors = mul_priors,
       parameters = mul_parameters, output = paste0("./MCMCmodels/model_", form, "/" , "model", imputedsets), ESS = 1000, chains = 2)
   }
@@ -222,7 +225,9 @@ for(imputedsets in 1 : length(imp$imp[[1]])) {
 ```
 
 ``` {r pooling, message=FALSE, warning=FALSE, error = TRUE, eval = FALSE}
-setwd("./MCMCmodels/model_1g")
+load("./imp.Rdata")
+
+setwd("./MCMCmodels/model_2f")
 list() -> raw_models_chain1 -> raw_models_chain2
 for(imputedsets in 1:  length(imp$imp[[1]])) {
   raw_models_chain1[[imputedsets]] <- read.mulTree(paste0("model",imputedsets,"-tree1_chain1"), model = TRUE)
@@ -265,12 +270,13 @@ results <- lapply(all_summaries, get.stat.Sol)
 ##Combining solutions for density plots + percentages
 
 #using list.rbind from rlist
+require(rlist)
 solX <- as.data.frame(list.rbind(all_Sol))
 
 ##Neat up the names!
 
 names(solX)
-names(solX) <- c("Intercept",    "Body Weight", "Burrowing", "Interaction")
+names(solX) <- c("Intercept", "Body Weight", "Burrow")
 
 
 
@@ -279,8 +285,8 @@ names(solX) <- c("Intercept",    "Body Weight", "Burrowing", "Interaction")
 #plot in pdf
 
 
-pdf(file="./MCMCmodels/density.pdf")
-par( mfrow = c( 3, 3 ))
+pdf(file="./density.pdf")
+par( mfrow = c( 2, 2 ))
     for(column in 1 : c(ncol(solX))) {
     percentage_above_zero <- length(which(solX[,column] >= 0))/length(solX[,column])
 hdr.den(solX[,column],  main = names(solX[column]), sub = paste0(round(percentage_above_zero*100,2), "% above zero"), prob = c(50, 95, 99))
@@ -400,10 +406,10 @@ row.names(tTable) <- names(solX)
 
 #Export a csv table
 #col.names = NA offsets the header with 1
-write.table(as.matrix(tTable), "./MCMCmodels/analysis-output.csv", sep = ",", col.names = NA, row.names = TRUE)
+write.table(as.matrix(tTable), "./analysis-output.csv", sep = ",", col.names = NA, row.names = TRUE)
 
 #Export txt with posteriors and Hs and DICs
-sink('./MCMCmodels/analysis-output.txt')
+sink('./analysis-output.txt')
 #options(width=10000) stops word wrapping
 options(width=10000)
 #print pooled results
@@ -426,7 +432,7 @@ res.plot$df <- NULL
 res.plot$WaldT <- NULL
 
 #generate pdf with the model
-pdf(file="./MCMCmodels/model.pdf",width=6,height=4)
+pdf(file="./model.pdf",width=6,height=4)
 p <- ggplot(
     res.plot, 
     aes(x = Qmbar, y = fct_relevel(row.names(res.plot), "VarN", "Intercept", after = Inf), xmin = lowerCI, xmax = upperCI)) +
@@ -452,103 +458,43 @@ mcmc_areas(t(res.plot))
 
 
 
+##PGLS and lambda
+```{r pgls, error = TRUE, eval = FALSE}
 
 
+pgls_m1 <- gls(ECV_ROB ~ AdultBodyMass + SeT + SeP, data = lep.data, correlation = corPagel(1,lep.tree1, form = ~Name_phyl), na.action = na.omit)
+anova(pgls_m1)
+summary(pgls_m1)
+lm_m1 <- lm(ECV_ROB ~ AdultBodyMass * Burrow, lep.data)
+check_model(lm_m1)
 
 
+formula1a <- ECV_ROB ~ AdultBodyMass + SeT + SeP 
+##Maternal investment
+formula1b <- ECV_ROB ~ AdultBodyMass + LitterSize + GestationLen
+##Spatial
+formula1c <- ECV_ROB ~ AdultBodyMass + HomeRange + GR_Area
+##Diet
+formula1d <- ECV_ROB ~ AdultBodyMass + DietBreadth
+##behavioural
+formula1e <- ECV_ROB ~ AdultBodyMass + Locomotor_Mode + Activity + Burrow
+##behavioural2
+formula1f <- ECV_ROB ~ AdultBodyMass + Burrow
 
 
+pgls_m1 <- gls(ECV_ROB ~ AdultBodyMass + Burrow, data = lep.data, correlation = corPagel(1,lep.tree1, form = ~Name_phyl), na.action = na.omit)
+
+lambda <- seq(-1.6, 1, length.out = 500)
+
+lik <- sapply(lambda, function(lambda) logLik(gls(ECV_ROB ~ AdultBodyMass + Burrow,correlation = corPagel(form=~Name_phyl, value = lambda, phy = lep.tree1, fixed = TRUE) ,data = lep.data, na.action = na.omit)))
+
+plot(lik ~ lambda, type = "l", main = expression(paste("Likelihood Plot for ",lambda)), ylab = "Log Likelihood", xlab = expression(lambda), xlim=c(-0.5, 1), ylim=c(-1, 1))
+
+abline(v = pgls_m1$modelStruct, col = "red")
 
 
-#Old PGLSs
-```{r old pgsl}
-
-leporid <- comparative.data(phy = lep.tree1, data = lep.data, names.col = Name_phyl, vcv = TRUE, na.omit = FALSE, warn.dropped = TRUE)
-
-#models seasonality
-
-model.Se1<-pgls(ECV_OB ~ AdultBodyMass * SeP, data = leporid, lambda='ML')
-anova(model.Se1)
-
-model.Se2<-pgls(ECV_OB ~ AdultBodyMass * SeT, data = leporid, lambda='ML')
-anova(model.Se2)
-
-model.Se1T<-pgls(ECV_ROB ~ AdultBodyMass + SeP, data = leporid, lambda='ML')
-anova(model.Se1T)
-
-model.Se2T<-pgls(ECV_ROB ~ AdultBodyMass + SeT, data = leporid, lambda='ML')
-anova(model.Se2T)
-
-#models maternal investment
-
-model.Dev1<-pgls(ECV_OB ~ AdultBodyMass + LitterSize + GestationLen, data = leporid, lambda='ML')
-anova(model.Dev1)
-
-model.Dev2<-pgls(ECV_ROB ~ AdultBodyMass + LitterSize + GestationLen, data = leporid, lambda='ML')
-anova(model.Dev2)
-
-#models spatial ecology
-
-model.Ran1<-pgls(ECV_OB ~ AdultBodyMass + GR_Area + Locomotor_Mode, data = leporid, lambda='ML')
-anova(model.Ran1)
-
-model.Ran2<-pgls(ECV_ROB ~ AdultBodyMass + HomeRange + GR_Area + Locomotor_Mode, data = leporid, lambda='ML')
-anova(model.Ran2)
-
-
-*************************
-model.Ran3<-pgls(ECV_ROB ~ AdultBodyMass + Burrow, data = leporid, lambda='ML')
-anova(model.Ran3)
-*************************
-
-#models eco
-
-model.Act1<-pgls(ECV_OB ~ AdultBodyMass + DietBreadth + Activity, data = leporid, lambda='ML')
-anova(model.Act1)
-
-model.Act2<-pgls(ECV_ROB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data = leporid, lambda='ML')
-anova(model.Act2)
-
-
-#Check for vifs
-
-vif(lm(ECV_ROB ~ AdultBodyMass + DietBreadth + Burrow + Activity, data=lep.data))
-
-
-
-
-
-
-#plot
-ggplot(lepdata, aes(x = res.ob, y = log(SeP))) + geom_point()
-
-       #or
-p <- plot_ly(lep.data, x = ~log(ECV_OB)/log(ECV_T), y = ~log(SeT), z = ~log(AdultBodyMass), color = ~Burrow, colors = c('#BF382A', '#0C4B8E')) %>%
-  add_markers() %>%
-  layout(scene = list(xaxis = list(title = 'RelBrain'),
-                      yaxis = list(title = 'SeT'),
-                      zaxis = list(title = 'BodyMass')))
-
-
-p1 <- ggplot(lep.data, aes(log(AdultBodyMass), log(ECV_ROB), color=Burrow, shape=Burrow)) +
-    geom_point(size=2) + 
-    geom_smooth(method=lm, se=FALSE, size=2) +
-    scale_colour_discrete(name = "Burrowing", labels = c("No", "Yes")) +
-    scale_shape_discrete(name = "Burrowing", labels = c("No", "Yes")) +
-    theme_classic() +
-    xlab("log Body weight") + ylab("log Brain volume") +
-    theme(axis.text.x = element_text(size = 20, face = "plain"),
-          axis.text.y = element_text(size = 20, face = "plain"),  
-          axis.title.x = element_text(size = 20, face = "plain", vjust=0.5),
-          axis.title.y = element_text(size = 20, face = "plain"),
-          legend.text = element_text(size=20),
-          legend.title = element_text(size=20, face = "bold"),
-          legend.background = element_blank(),
-          legend.box.background = element_rect(colour = "black"),
-          legend.title.align=0.5,
-          legend.position = c(0.93, 0.5)) +
-    coord_fixed(ratio = 1) 
-
+rect(0, -1, 1, 1, col= rgb(0,0.4,0,alpha=0.2), border = NA)
+text(-0.1840879, 0.5248559, "-0.33")
 ```
 
 
