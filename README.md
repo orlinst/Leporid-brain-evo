@@ -17,3 +17,5 @@ Dataset (individuals and per species)
 R code
 
 Phylogenetic tree
+
+Endocasts with reference number from morphosource
