@@ -1,4 +1,4 @@
-**Leporid-brain-evo
+﻿**Leporid-brain-evo
 "Supplementary material for Down a rabbit hole: Burrowing behaviour and larger home ranges are related to larger brains in Leporids"
 **
 
@@ -16,7 +16,7 @@ R code
 
 Phylogenetic tree
 
-Figures showing endocasting � OB delineation and brain stem removal (Supplementary Figure 1 and 2)
+Figures showing endocasting – OB delineation and brain stem removal (Supplementary Figure 1 and 2)
 
 Endocasts with reference number from morphosource
 
