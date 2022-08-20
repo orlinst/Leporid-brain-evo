@@ -1,0 +1,32 @@
+Home Range:
+
+Calculation of D statistic for the phylogenetic structure of a binary variable
+
+  Data :  data
+  Binary variable :  HomeRange
+  Counts of states:  0 = 14
+                     1 = 4
+  Phylogeny :  phy
+  Number of permutations :  1000
+
+Estimated D :  -0.7950358
+Probability of E(D) resulting from no (random) phylogenetic structure :  0.029
+Probability of E(D) resulting from Brownian phylogenetic structure    :  0.777
+
+Gestation Length:
+
+Calculation of D statistic for the phylogenetic structure of a binary variable
+
+  Data :  data
+  Binary variable :  GestationLen
+  Counts of states:  0 = 17
+                     1 = 1
+  Phylogeny :  phy
+  Number of permutations :  1000
+
+Estimated D :  -2.989562
+Probability of E(D) resulting from no (random) phylogenetic structure :  0.282
+Probability of E(D) resulting from Brownian phylogenetic structure    :  0.578
+
+
+
